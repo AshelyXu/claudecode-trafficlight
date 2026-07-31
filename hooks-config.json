@@ -1,0 +1,89 @@
+{
+  "_comment": "将此配置合并到 ~/.claude/settings.json 的 hooks 字段中。将 /PATH/TO 替换为项目实际路径。",
+  "_instructions": "Replace /PATH/TO/my-app with the actual project path, then merge into ~/.claude/settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh session_start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh prompt_submit"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh tool_start $CLAUDE_TOOL_NAME"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh tool_done $CLAUDE_TOOL_NAME"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh tool_error $CLAUDE_TOOL_NAME"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh stop"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh stop_error"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/PATH/TO/my-app/scripts/status-hook.sh session_end"
+          }
+        ]
+      }
+    ]
+  }
+}

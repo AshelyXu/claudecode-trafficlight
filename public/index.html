@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0D1117">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Claude Monitor</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --housing:  #16181D;
+  --housing-bdr: #2A2D35;
+  --green:    #00FF88;
+  --yellow:   #FFB800;
+  --red:      #FF3B50;
+  --off:      #3A3D45;
+  --text:     #E6EAF0;
+  --dim:      #8B90A0;
+}
+
+html, body {
+  height: 100%;
+  background: transparent !important;
+  color-scheme: dark;
+}
+
+body {
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  background: transparent !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP — draggable column
+   ═══════════════════════════════════════════════════════════════ */
+
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HOUSING — horizontal lights row
+   ═══════════════════════════════════════════════════════════════ */
+
+.housing {
+  flex-shrink: 0;
+  background: var(--housing);
+  border: 1.5px solid var(--housing-bdr);
+  border-radius: 20px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT SOCKET
+   ═══════════════════════════════════════════════════════════════ */
+
+.light {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #111318;
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,0.55),
+    0 1px 0 rgba(255,255,255,0.02);
+  position: relative;
+  transition: background 0.4s ease-out, box-shadow 0.4s ease-out;
+}
+
+.light::before {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  transition: all 0.4s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GREEN (idle)
+   ═══════════════════════════════════════════════════════════════ */
+
+body.status-idle .light-green {
+  background: #0A1A13;
+}
+body.status-idle .light-green::before {
+  background: radial-gradient(circle at 40% 35%, rgba(0,255,136,0.95), rgba(0,255,136,0.65) 60%, rgba(0,255,136,0.2) 100%);
+  box-shadow:
+    0 0 14px rgba(0,255,136,0.65),
+    0 0 36px rgba(0,255,136,0.3);
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   YELLOW (thinking / working)
+   ═══════════════════════════════════════════════════════════════ */
+
+body.status-thinking .light-yellow,
+body.status-working .light-yellow {
+  background: #1A150A;
+}
+body.status-thinking .light-yellow::before {
+  background: radial-gradient(circle at 40% 35%, rgba(255,184,0,0.9), rgba(255,184,0,0.6) 60%, rgba(255,184,0,0.2) 100%);
+  box-shadow:
+    0 0 14px rgba(255,184,0,0.65),
+    0 0 36px rgba(255,184,0,0.3);
+  animation: breathe 2.5s ease-in-out infinite;
+}
+body.status-working .light-yellow::before {
+  background: radial-gradient(circle at 40% 35%, rgba(255,184,0,1), rgba(255,184,0,0.75) 60%, rgba(255,184,0,0.35) 100%);
+  box-shadow:
+    0 0 20px rgba(255,184,0,0.85),
+    0 0 48px rgba(255,184,0,0.45);
+  animation: pulse-yellow 1.2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RED (error)
+   ═══════════════════════════════════════════════════════════════ */
+
+body.status-error .light-red {
+  background: #1A0A0D;
+}
+body.status-error .light-red::before {
+  background: radial-gradient(circle at 40% 35%, rgba(255,59,80,1), rgba(255,59,80,0.7) 60%, rgba(255,59,80,0.3) 100%);
+  box-shadow:
+    0 0 20px rgba(255,59,80,0.85),
+    0 0 48px rgba(255,59,80,0.45);
+  animation: flash-red 0.5s ease-in-out 2;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OFFLINE
+   ═══════════════════════════════════════════════════════════════ */
+
+body.status-offline .light::before {
+  background: radial-gradient(circle at 40% 35%, rgba(58,61,69,0.3), rgba(58,61,69,0.1) 60%, transparent 100%);
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+@keyframes pulse-yellow {
+  0%, 100% { opacity: 1; }
+  40%      { opacity: 0.5; }
+  70%      { opacity: 0.75; }
+}
+@keyframes flash-red {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+@keyframes feed-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS TEXT — below lights
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+.status-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: color 0.4s ease-out;
+  white-space: nowrap;
+}
+
+body.status-idle    .status-label { color: var(--green);  }
+body.status-thinking .status-label { color: var(--yellow); }
+body.status-working .status-label { color: var(--yellow); }
+body.status-error   .status-label { color: var(--red);    }
+body.status-offline .status-label { color: var(--off);    }
+
+.status-msg {
+  font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.update-time {
+  font-size: 9px;
+  color: var(--dim);
+  opacity: 0.35;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FEED — shown when window is tall enough
+   ═══════════════════════════════════════════════════════════════ */
+
+.feed-section {
+  display: none;
+  -webkit-app-region: no-drag;
+}
+
+@media (min-height: 240px) {
+  .feed-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 260px;
+  }
+  .feed-header {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--dim);
+    opacity: 0.3;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 2px;
+  }
+  .feed-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .feed-list::-webkit-scrollbar { display: none; }
+  .feed-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 2px;
+    animation: feed-in 0.25s ease-out;
+    font-size: 10px;
+  }
+  .feed-dot {
+    flex-shrink: 0;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+  }
+  .dot-idle     { background: var(--green);  }
+  .dot-working  { background: var(--yellow); }
+  .dot-thinking { background: var(--yellow); }
+  .dot-error    { background: var(--red);    }
+  .dot-offline  { background: var(--off);    }
+  .feed-time {
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    opacity: 0.4;
+    width: 45px;
+  }
+  .feed-msg {
+    color: var(--dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .feed-item:first-child .feed-msg { color: var(--text); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light::before { animation: none !important; }
+  .feed-item { animation: none !important; }
+}
+</style>
+</head>
+<body class="status-offline">
+
+<div class="app">
+
+  <div class="housing">
+    <div class="light light-red"    role="img" aria-label="红灯 — 出错"></div>
+    <div class="light light-yellow" role="img" aria-label="黄灯 — 工作中"></div>
+    <div class="light light-green"  role="img" aria-label="绿灯 — 就绪"></div>
+  </div>
+
+  <div class="status-info">
+    <h1 class="status-label">离线</h1>
+    <p class="status-msg">等待 Claude Code 启动…</p>
+    <time class="update-time">--:--:--</time>
+  </div>
+
+  <div class="feed-section">
+    <div class="feed-header">活动记录</div>
+    <div class="feed-list" id="feedList" role="log" aria-live="polite"></div>
+  </div>
+
+</div>
+
+<script>
+const STATUS = { idle:'就绪', thinking:'思考中', working:'工作中', error:'出错', offline:'离线' };
+
+function updateUI(status, message, updatedAt) {
+  document.body.className = 'status-' + status;
+  document.querySelectorAll('.status-label').forEach(el => el.textContent = STATUS[status] || status);
+  document.querySelectorAll('.status-msg').forEach(el => el.textContent = message || '');
+  if (updatedAt) {
+    document.querySelectorAll('.update-time').forEach(el => {
+      el.textContent = new Date(updatedAt).toLocaleTimeString('zh-CN', { hour12: false });
+      el.setAttribute('datetime', updatedAt);
+    });
+  }
+}
+
+function addFeedItem(entry) {
+  const list = document.getElementById('feedList');
+  if (!list) return;
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `<span class="feed-dot dot-${entry.status}" aria-hidden="true"></span><span class="feed-time">${entry.time}</span><span class="feed-msg">${entry.message}</span>`;
+  list.insertBefore(item, list.firstChild);
+  while (list.children.length > 50) list.removeChild(list.lastChild);
+}
+
+function connect() {
+  const es = new EventSource('/api/stream');
+  es.addEventListener('init', e => {
+    const s = JSON.parse(e.data);
+    updateUI(s.status, s.message, s.updatedAt);
+    if (s.history) [...s.history].reverse().forEach(addFeedItem);
+  });
+  es.addEventListener('status', e => { const d = JSON.parse(e.data); updateUI(d.status, d.message, d.updatedAt); });
+  es.addEventListener('history', e => addFeedItem(JSON.parse(e.data)));
+  es.onerror = () => { es.close(); setTimeout(connect, 2000); };
+}
+connect();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+</script>
+</body>
+</html>
